@@ -1,6 +1,7 @@
 package it.polimi.mediasharing.activities;
 
 import it.polimi.mediasharing.sockets.Client;
+import it.polimi.mediasharing.sockets.Server;
 import it.polimit.mediasharing_sender.R;
 
 import java.io.File;
@@ -48,6 +49,7 @@ public class MainActivity extends A3DroidActivity{
 	private EditText experiment;
 	public static int runningExperiment;
 	private Client client = new Client();
+	private Server server;
 	//private EditText numberOfGroupsToCreate;
 	
 	public static void setRunningExperiment(int runningExperiment) {
@@ -91,6 +93,12 @@ public class MainActivity extends A3DroidActivity{
 
 		inText=(EditText)findViewById(R.id.oneInEditText);
 		experiment = (EditText)findViewById(R.id.editText1);
+		try {
+			server = new Server(4444, fromGuiThread);
+			server.start();
+		} catch (IOException e) {
+			showOnScreen("Error creating the file server.");
+		}
 		
 		/*ArrayList<String> roles = new ArrayList<String>();
 		roles.add(ControlSupervisorRole.class.getName());
@@ -153,6 +161,7 @@ public class MainActivity extends A3DroidActivity{
 	@Override
 	protected void onDestroy(){
 		node.disconnect("control", true);
+		server.interrupt();
 		System.exit(0);
 	}
 	
