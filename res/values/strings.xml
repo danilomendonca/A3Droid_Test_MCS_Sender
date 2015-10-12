@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">A3Test_MediaSender</string>
+    <string name="action_settings">Settings</string>
+    <string name="system_messages">Messaggi di sistema</string>
+    <string name="mex_out">Messaggi da spedire</string>
+    <string name="connect">C/D</string>
+    <string name="disconnect">D</string>
+    <string name="send">I</string>
+    <string name="subscribe50">S50</string>
+    <string name="subscribe51">S51</string>
+    <string name="send50">I50</string>
+    <string name="send51">I51</string>
+
+</resources>
