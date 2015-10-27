@@ -2,14 +2,21 @@ package it.polimi.mediasharing.activities;
 
 import it.polimi.mediasharing.sockets.Client;
 import it.polimi.mediasharing.sockets.Server;
+import it.polimi.mediasharing.util.StringTimeUtil;
 import it.polimit.mediasharing_sender.R;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Date;
 
 import a3.a3droid.A3DroidActivity;
 import a3.a3droid.A3Node;
+import a3.a3droid.Timer;
+import a3.a3droid.TimerInterface;
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -19,7 +26,7 @@ import android.view.Menu;
 import android.view.View;
 import android.widget.EditText;
 
-public class MainActivity extends A3DroidActivity{
+public class MainActivity extends A3DroidActivity implements TimerInterface{
 	
 	public static final String PACKAGE_NAME = "it.polimi.mediasharing.a3";
 	public static final String EXPERIMENT_PREFIX = "A3Test3_";
@@ -41,21 +48,27 @@ public class MainActivity extends A3DroidActivity{
 	public static final int RFS = 50;
 	public static final int MC = 51;
 	public static final int SID = 52;
+	public static final int MCR = 53;
+	public static final int SERVLET_PORT = 4444;
 	
 	private A3Node node;
 	private EditText inText;
 	private Handler toGuiThread;
 	private Handler fromGuiThread;
-	private EditText experiment;
-	public static int runningExperiment;
 	private Client client = new Client();
 	private Server server;
-	//private EditText numberOfGroupsToCreate;
+	private EditText supervisorAddress;
+	private boolean experimentIsRunning = false;
+	private int sentCont = 0;
+	private double avgRTT = 0;
+	private long sendTime;
+	public static int runningExperiment;
+	private String startTimestamp;
+	private final static long MAX_INTERNAL = 5 * 1000;
+	private final static long TIMEOUT = 60 * 1000;
 	
-	public static void setRunningExperiment(int runningExperiment) {
-		MainActivity.runningExperiment = runningExperiment;
-	}
 
+	@SuppressLint("HandlerLeak")
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -76,15 +89,62 @@ public class MainActivity extends A3DroidActivity{
 			@Override
 			public void handleMessage(Message msg){
 				
+				long rtt;
 				switch (msg.what) {
-					case 1:
+					case STOP_EXPERIMENT:
+						if(experimentIsRunning){
+							this.sendEmptyMessage(LONG_RTT);
+						}
 						break;
-					case SID:			
+					case START_EXPERIMENT:
+						if(!experimentIsRunning){
+							experimentIsRunning = true;
+							startTimestamp = StringTimeUtil.getTimestamp();
+							showOnScreen("Experiment has started");
+							new Timer(MainActivity.this, 0, (int) (Math.random() * 1000)).start();
+						}
+						break;	
+					case SID:
+						showOnScreen("Received supervisor address");
 						sendFileToAnotherGroup((String)msg.obj);
 						break;
-					case 6:
-						sendRequestForSharing();
-						break;	
+					case MCR:
+						showOnScreen("Received supervisor confirmation");
+						sentCont ++;
+						rtt = StringTimeUtil.roundTripTime(sendTime, StringTimeUtil.getTimestamp());
+						avgRTT = (avgRTT * (sentCont - 1) + rtt) / sentCont; 
+
+						if(rtt > TIMEOUT && experimentIsRunning){
+							experimentIsRunning = false;
+							this.sendEmptyMessage(LONG_RTT);
+						}
+						else{
+							new Timer(MainActivity.this, 0, (int) (Math.random() * MAX_INTERNAL)).start();
+						}
+						if(sentCont % 10 == 0)
+							showOnScreen(sentCont + " mex spediti.");
+						break;
+					case LONG_RTT:
+						showOnScreen("Experiment has stopped");
+						experimentIsRunning = false;
+						long runningTime = StringTimeUtil.roundTripTime(startTimestamp, StringTimeUtil.getTimestamp()) / 1000;
+						float frequency = sentCont / ((float)(runningTime));
+						File sd;
+						File f;
+						FileWriter fw;
+						BufferedWriter bw;
+						sd = Environment.getExternalStorageDirectory();
+						f = new File(sd, MainActivity.EXPERIMENT_PREFIX + "Mediasharing" + ".txt");
+						try {
+							fw = new FileWriter(f, true);
+							bw = new BufferedWriter(fw);
+							bw.write((sentCont + "\t" +
+									runningTime + "\t" + frequency + "\t" + avgRTT).replace(".", ",") + "\n");
+							bw.flush();
+						} catch (IOException e) {
+							showOnScreen(e.getLocalizedMessage());
+						}
+						break;
 					default:
 						break;
 				}					
@@ -92,68 +152,47 @@ public class MainActivity extends A3DroidActivity{
 		};
 
 		inText=(EditText)findViewById(R.id.oneInEditText);
-		experiment = (EditText)findViewById(R.id.editText1);
+		supervisorAddress = (EditText)findViewById(R.id.editText1);
 		try {
-			server = new Server(4444, fromGuiThread);
+			server = new Server(SERVLET_PORT, fromGuiThread);
 			server.start();
 		} catch (IOException e) {
 			showOnScreen("Error creating the file server.");
 		}
-		
-		/*ArrayList<String> roles = new ArrayList<String>();
-		roles.add(ControlSupervisorRole.class.getName());
-		roles.add(ControlFollowerRole.class.getName());
-		roles.add(ExperimentSupervisorRole.class.getName());
-		roles.add(ExperimentFollowerRole.class.getName());
-		
-		
-		ArrayList<GroupDescriptor> groupDescriptors = new ArrayList<GroupDescriptor>();
-		groupDescriptors.add(new ControlDescriptor());
-		groupDescriptors.add(new ExperimentDescriptor());
-		
-		node = new A3Node(this, roles, groupDescriptors);
-		node.connect("control", false, true);*/
 	}
 	
 	private void sendRequestForSharing(){
-		File sd = Environment.getExternalStorageDirectory();
-		File f = new File(sd, "image.jpg");
+		showOnScreen("Sending a Request for Sharing (RFS)");
+		sendTime = new Date().getTime();
 		try {
-			client.sendMessage("192.168.1.101", 4444, MainActivity.RFS, new Date().getTime() + "");
-		} catch (IOException e) {
-			System.out.println("Error sending file to another group");
+			client.sendMessage(supervisorAddress.getText().toString(), 4444, MainActivity.RFS,  "");
+		} catch (IOException e) {			
 			e.printStackTrace();
 			showOnScreen("Error sending file to another group");
 		}
 	}
 	
 	private void sendFileToAnotherGroup(String host){
-		File sd = Environment.getExternalStorageDirectory();
-		File f = new File(sd, "image.jpg");
+		showOnScreen("Sending Media Content (MC) to supervisor address");
+		InputStream is = getResources().openRawResource(R.raw.image);
 		try {
-			client.sendFile(host, 4444, MainActivity.MC, f);
+			client.sendFile(host, SERVLET_PORT, MainActivity.MC, is);
 		} catch (IOException e) {
-			System.out.println("Error sending file to another group");
 			e.printStackTrace();
 			showOnScreen("Error sending file to another group");
 		}
 	}
 
-	public void start1(View v){
-		fromGuiThread.sendEmptyMessage(1);
-	}
-	
 	public void stopExperiment(View v){
-		fromGuiThread.sendEmptyMessage(5);
+		fromGuiThread.sendEmptyMessage(STOP_EXPERIMENT);
 	}
 	
 	public void startExperiment(View v){
-		fromGuiThread.sendEmptyMessage(6);
+		fromGuiThread.sendEmptyMessage(START_EXPERIMENT);
 	}
 	
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		// Inflate the menu; this adds items to the action bar if it is present.
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
@@ -167,7 +206,12 @@ public class MainActivity extends A3DroidActivity{
 	
 	@Override
 	public void showOnScreen(String message) {
-		// TODO Auto-generated method stub
 		toGuiThread.sendMessage(toGuiThread.obtainMessage(0, message));
 	}
+
+	@Override
+	public void timerFired(int reason) {	
+		if(experimentIsRunning)
+			sendRequestForSharing();
+	}	
 }

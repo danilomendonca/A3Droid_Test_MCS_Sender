@@ -12,5 +12,10 @@
     <string name="subscribe51">S51</string>
     <string name="send50">I50</string>
     <string name="send51">I51</string>
+    <string name="start_trial">Start Experiment</string>
+    <string name="stop_trial">Stop Experiment</string>  
+    <string name="supervisor_ip">Supervisor IP</string>
+    <string name="set_ip">Set IP</string>
+    <string name="default_ip">192.168.1.101</string>
 
 </resources>

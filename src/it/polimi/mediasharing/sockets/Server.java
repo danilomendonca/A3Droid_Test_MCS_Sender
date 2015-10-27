@@ -59,11 +59,14 @@ public class Server extends Thread{
 	        
 	        int reason = dis.readInt();
 	        switch (reason) {
-			case MainActivity.SID:
-				handler.sendMessage(handler.obtainMessage(MainActivity.SID, dis.readUTF()));
-				break;
-			default:
-				break;
+				case MainActivity.SID:
+					handler.sendMessage(handler.obtainMessage(MainActivity.SID, dis.readUTF()));
+					break;
+				case MainActivity.MCR:
+					handler.sendEmptyMessage(MainActivity.MCR);
+					break;
+				default:
+					break;
 	        }
         }
         bis.close();

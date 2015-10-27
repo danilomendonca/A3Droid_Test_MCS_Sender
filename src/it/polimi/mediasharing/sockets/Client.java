@@ -2,13 +2,11 @@ package it.polimi.mediasharing.sockets;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.Socket;
-import java.nio.charset.Charset;
 
 public class Client {
 	
@@ -16,8 +14,8 @@ public class Client {
         sendToTheServer(host, port, reason, message);
     }
 	
-    public void sendFile(String host, int port, int reason, File file) throws IOException {
-    	BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+    public void sendFile(String host, int port, int reason, InputStream file) throws IOException {
+    	BufferedInputStream bis = new BufferedInputStream(file);
         sendToTheServer(host, port, reason, bis);
     }
     
