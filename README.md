@@ -4,8 +4,6 @@ Currently alljoyn framework only supports wi-fi as a stable connection method. B
 
 ## Required libraries
 
-* [Alljoyn for Android](https://allseenalliance.org/framework/download) .jar and the .so - armeabi folder, in case of devices ~~and arme VDM, x86 folder, in case of x86 VDM~~
-* A3Droid .jar
 * Android v4 .jars
 
 ## Experiment steps
