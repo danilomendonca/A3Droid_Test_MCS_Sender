@@ -99,6 +99,8 @@ public class MainActivity extends A3DroidActivity implements TimerInterface{
 					case START_EXPERIMENT:
 						if(!experimentIsRunning){
 							experimentIsRunning = true;
+							sentCont = 0;
+							avgRTT = 0;
 							startTimestamp = StringTimeUtil.getTimestamp();
 							showOnScreen("Experiment has started");
 							new Timer(MainActivity.this, 0, (int) (Math.random() * 1000)).start();
@@ -111,7 +113,7 @@ public class MainActivity extends A3DroidActivity implements TimerInterface{
 					case MCR:
 						showOnScreen("Received supervisor confirmation");
 						sentCont ++;
-						rtt = StringTimeUtil.roundTripTime(sendTime, StringTimeUtil.getTimestamp());
+						rtt = StringTimeUtil.roundTripTime(sendTime, StringTimeUtil.getTimestamp()) / 1000;
 						avgRTT = (avgRTT * (sentCont - 1) + rtt) / sentCont; 
 
 						if(rtt > TIMEOUT && experimentIsRunning){
