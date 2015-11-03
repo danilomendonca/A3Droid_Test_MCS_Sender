@@ -29,7 +29,7 @@ import android.widget.EditText;
 public class MainActivity extends A3DroidActivity implements TimerInterface{
 	
 	public static final String PACKAGE_NAME = "it.polimi.mediasharing.a3";
-	public static final String EXPERIMENT_PREFIX = "A3Test3_";
+	public static final String EXPERIMENT_PREFIX = "A3Droid_";
 	public static final int NUMBER_OF_EXPERIMENTS = 32;
 	
 	public static final int CREATE_GROUP = 31;
@@ -57,14 +57,14 @@ public class MainActivity extends A3DroidActivity implements TimerInterface{
 	private Handler fromGuiThread;
 	private Client client = new Client();
 	private Server server;
-	private EditText supervisorAddress;
+	private EditText supervisorAddress, contentFrequency;
 	private boolean experimentIsRunning = false;
 	private int sentCont = 0;
 	private double avgRTT = 0;
 	private long sendTime;
 	public static int runningExperiment;
 	private String startTimestamp;
-	private final static long MAX_INTERNAL = 5 * 1000;
+	private long MAX_INTERNAL = 5 * 1000;
 	private final static long TIMEOUT = 60 * 1000;
 	
 
@@ -89,7 +89,7 @@ public class MainActivity extends A3DroidActivity implements TimerInterface{
 			@Override
 			public void handleMessage(Message msg){
 				
-				long rtt;
+				double rtt;
 				switch (msg.what) {
 					case STOP_EXPERIMENT:
 						if(experimentIsRunning){
@@ -101,6 +101,7 @@ public class MainActivity extends A3DroidActivity implements TimerInterface{
 							experimentIsRunning = true;
 							sentCont = 0;
 							avgRTT = 0;
+							MAX_INTERNAL = Long.valueOf(contentFrequency.getText().toString());
 							startTimestamp = StringTimeUtil.getTimestamp();
 							showOnScreen("Experiment has started");
 							new Timer(MainActivity.this, 0, (int) (Math.random() * 1000)).start();
@@ -155,6 +156,7 @@ public class MainActivity extends A3DroidActivity implements TimerInterface{
 
 		inText=(EditText)findViewById(R.id.oneInEditText);
 		supervisorAddress = (EditText)findViewById(R.id.editText1);
+		contentFrequency = (EditText)findViewById(R.id.editText2);
 		try {
 			server = new Server(SERVLET_PORT, fromGuiThread);
 			server.start();

@@ -17,5 +17,7 @@
     <string name="supervisor_ip">Supervisor IP</string>
     <string name="set_ip">Set IP</string>
     <string name="default_ip">192.168.1.101</string>
+    <string name="content_frequency">MC Frequency (Mes/min)</string>
+    <string name="default_frequency">5</string>
 
 </resources>
